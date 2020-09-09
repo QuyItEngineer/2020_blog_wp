@@ -1,61 +1,68 @@
 version: '3'
 
 services:
-  wp:
+  blog-wp:
     image: wordpress:latest # https://hub.docker.com/_/wordpress/
+    container_name: blog-wp
     ports:
-      - ${IP}:80:80 # change ip if required
+      - 80:80
     volumes:
       - ./config/php.conf.ini:/usr/local/etc/php/conf.d/conf.ini
       - ./wp-app:/var/www/html # Full wordpress project
       #- ./plugin-name/trunk/:/var/www/html/wp-content/plugins/plugin-name # Plugin development
       #- ./theme-name/trunk/:/var/www/html/wp-content/themes/theme-name # Theme development
     environment:
-      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_HOST: blog-db
       WORDPRESS_DB_NAME: "${DB_NAME}"
-      WORDPRESS_DB_USER: root
-      WORDPRESS_DB_PASSWORD: "${DB_ROOT_PASSWORD}"
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
     depends_on:
-      - db
+      - blog-db
     links:
-      - db
+      - blog-db
 
   wpcli:
     image: wordpress:cli
+    container_name: blog-wpcli
     volumes:
       - ./config/php.conf.ini:/usr/local/etc/php/conf.d/conf.ini
       - ./wp-app:/var/www/html
     depends_on:
-      - db
-      - wp
+      - blog-db
+      - blog-wp
 
-  pma:
-    image: phpmyadmin/phpmyadmin
-    environment:
-      # https://docs.phpmyadmin.net/en/latest/setup.html#docker-environment-variables
-      PMA_HOST: db
-      PMA_PORT: 3306
-      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
-    ports:
-      - ${IP}:8080:80
-    links:
-      - db:db
+  # pma:
+  #   image: phpmyadmin/phpmyadmin
+  #   container_name: blog-pma
+  #   environment:
+  #     # https://docs.phpmyadmin.net/en/latest/setup.html#docker-environment-variables
+  #     PMA_HOST: blog-db
+  #     PMA_PORT: 3306
+  #     MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+  #   ports:
+  #     - ${IP}:8080:80
+  #   links:
+  #     - blog-db:blog-db
 
-  db:
-    image: mysql:latest # https://hub.docker.com/_/mysql/ - or mariadb https://hub.docker.com/_/mariadb
+  blog-db:
+    build: ./docker/mysql
+    container_name: blog-mysql
     ports:
-      - ${IP}:3306:3306 # change ip if required
+      - 3306:3306
     command: [
         '--default_authentication_plugin=mysql_native_password',
         '--character-set-server=utf8mb4',
         '--collation-server=utf8mb4_unicode_ci'
     ]
+    restart: always
     volumes:
       - ./wp-data:/docker-entrypoint-initdb.d
       - db_data:/var/lib/mysql
     environment:
       MYSQL_DATABASE: "${DB_NAME}"
       MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+      MYSQL_USER: "${MYSQL_USER}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
 
 volumes:
   db_data:
