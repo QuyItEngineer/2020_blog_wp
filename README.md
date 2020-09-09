@@ -6,3 +6,8 @@ the Blog common website
 
 - cp .env .env.example
 - docker-compose up
+
+## Website infomation
+
+- admin
+- Admin123!@#
